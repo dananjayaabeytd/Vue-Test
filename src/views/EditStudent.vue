@@ -90,6 +90,22 @@
           />
         </div>
 
+        <div class="form-group">
+          <label>Student Image</label>
+          <div class="image-selector">
+            <div 
+              v-for="image in availableImages" 
+              :key="image"
+              class="image-option"
+              :class="{ selected: form.image === image }"
+              @click="form.image = image"
+            >
+              <img :src="`/std-images/${image}`" :alt="image" />
+              <span class="checkmark" v-if="form.image === image">✓</span>
+            </div>
+          </div>
+        </div>
+
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">
             ✓ Save Changes
@@ -110,6 +126,7 @@ export default {
   name: 'EditStudent',
   data() {
     return {
+      availableImages: ['std-01.jpeg', 'std-2.jpg', 'srd-3.jpg'],
       student: null,
       form: {
         name: '',
@@ -117,7 +134,8 @@ export default {
         age: '',
         course: '',
         enrollmentDate: '',
-        gpa: ''
+        gpa: '',
+        image: 'std-01.jpeg'
       }
     }
   },
@@ -126,13 +144,26 @@ export default {
     this.student = mutations.getStudent(id)
     
     if (this.student) {
-      this.form = { ...this.student }
+      // Map backend field names to frontend
+      this.form = {
+        name: this.student.name,
+        email: this.student.email,
+        age: this.student.age,
+        course: this.student.course,
+        enrollmentDate: this.student.enrollment_date || this.student.enrollmentDate,
+        gpa: this.student.gpa,
+        image: this.student.image || 'std-01.jpeg'
+      }
     }
   },
   methods: {
-    handleSubmit() {
-      mutations.updateStudent(this.student.id, this.form)
-      this.$router.push(`/students/${this.student.id}`)
+    async handleSubmit() {
+      try {
+        await mutations.updateStudent(this.student.id, this.form)
+        this.$router.push(`/students/${this.student.id}`)
+      } catch (error) {
+        alert('Error updating student: ' + (error.response?.data?.message || error.message))
+      }
     }
   }
 }
@@ -221,6 +252,56 @@ export default {
 
 .form-group select {
   cursor: pointer;
+}
+
+.image-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.image-option {
+  position: relative;
+  border: 3px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  aspect-ratio: 1;
+}
+
+.image-option:hover {
+  border-color: #667eea;
+  transform: scale(1.05);
+}
+
+.image-option.selected {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.image-option img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.image-option .checkmark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #667eea;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
 }
 
 .form-actions {

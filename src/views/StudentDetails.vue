@@ -19,7 +19,10 @@
       </div>
 
       <div class="profile-card">
-        <div class="profile-avatar">
+        <div class="profile-avatar" v-if="student.image">
+          <img :src="`/std-images/${student.image}`" :alt="student.name" />
+        </div>
+        <div class="profile-avatar" v-else>
           {{ student.name.charAt(0).toUpperCase() }}
         </div>
         <h1>{{ student.name }}</h1>
@@ -55,7 +58,7 @@
           <div class="info-icon">📅</div>
           <div class="info-content">
             <label>Enrollment Date</label>
-            <p>{{ formatDate(student.enrollmentDate) }}</p>
+            <p>{{ formatDate(student.enrollment_date || student.enrollmentDate) }}</p>
           </div>
         </div>
 
@@ -71,7 +74,7 @@
           <div class="info-icon">⏱️</div>
           <div class="info-content">
             <label>Duration</label>
-            <p>{{ getStudyDuration(student.enrollmentDate) }}</p>
+            <p>{{ getStudyDuration(student.enrollment_date || student.enrollmentDate) }}</p>
           </div>
         </div>
       </div>
@@ -99,9 +102,18 @@ export default {
       student: null
     }
   },
-  created() {
+  async created() {
     const id = parseInt(this.$route.params.id)
-    this.student = mutations.getStudent(id)
+    try {
+      // First try to get from store (if already loaded)
+      this.student = mutations.getStudent(id)
+      // If not in store, fetch from API
+      if (!this.student) {
+        this.student = await mutations.fetchStudent(id)
+      }
+    } catch (error) {
+      console.error('Error loading student:', error)
+    }
   },
   methods: {
     formatDate(dateString) {
@@ -113,7 +125,9 @@ export default {
       })
     },
     getStudyDuration(enrollmentDate) {
-      const start = new Date(enrollmentDate)
+      // Handle both enrollment_date and enrollmentDate field names
+      const dateStr = enrollmentDate || this.student?.enrollment_date
+      const start = new Date(dateStr)
       const now = new Date()
       const months = (now.getFullYear() - start.getFullYear()) * 12 + 
                      (now.getMonth() - start.getMonth())
@@ -131,10 +145,14 @@ export default {
       if (gpa >= 2.5) return 'Average performance'
       return 'Needs improvement'
     },
-    confirmDelete() {
+    async confirmDelete() {
       if (confirm(`Are you sure you want to delete ${this.student.name}?`)) {
-        mutations.deleteStudent(this.student.id)
-        this.$router.push('/students')
+        try {
+          await mutations.deleteStudent(this.student.id)
+          this.$router.push('/students')
+        } catch (error) {
+          alert('Error deleting student: ' + error.message)
+        }
       }
     }
   }
@@ -227,6 +245,13 @@ export default {
   font-size: 3rem;
   font-weight: bold;
   margin: 0 auto 20px;
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile-card h1 {

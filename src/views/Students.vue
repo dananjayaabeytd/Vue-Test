@@ -26,7 +26,10 @@
         :key="student.id"
         class="student-card"
       >
-        <div class="student-avatar">
+        <div class="student-avatar" v-if="student.image">
+          <img :src="`/std-images/${student.image}`" :alt="student.name" />
+        </div>
+        <div class="student-avatar" v-else>
           {{ student.name.charAt(0).toUpperCase() }}
         </div>
         <div class="student-info">
@@ -89,10 +92,18 @@ export default {
       )
     }
   },
+  mounted() {
+    // Fetch students when component mounts
+    mutations.fetchStudents()
+  },
   methods: {
-    confirmDelete(student) {
+    async confirmDelete(student) {
       if (confirm(`Are you sure you want to delete ${student.name}?`)) {
-        mutations.deleteStudent(student.id)
+        try {
+          await mutations.deleteStudent(student.id)
+        } catch (error) {
+          alert('Error deleting student: ' + error.message)
+        }
       }
     }
   }
@@ -197,6 +208,13 @@ export default {
   font-size: 1.5rem;
   font-weight: bold;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.student-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .student-info {
